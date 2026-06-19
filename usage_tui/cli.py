@@ -62,11 +62,16 @@ def _fetch_result(provider: BaseProvider, window: WindowPeriod):
         return provider._make_error_result(window=window, error=f"Unexpected error: {exc}")
 
 
-@click.group()
+@click.group(invoke_without_command=True)
 @click.version_option()
-def main() -> None:
-    """Usage metrics TUI for Claude, OpenAI, OpenRouter, Copilot, and Codex."""
-    pass
+@click.pass_context
+def main(ctx: click.Context) -> None:
+    """Usage metrics TUI for Claude, OpenAI, OpenRouter, Copilot, and Codex.
+
+    Running with no subcommand launches the interactive TUI.
+    """
+    if ctx.invoked_subcommand is None:
+        ctx.invoke(tui)
 
 
 @main.command()
