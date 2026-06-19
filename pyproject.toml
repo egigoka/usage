@@ -11,7 +11,7 @@ requires-python = ">=3.10"
 license = "MIT"
 keywords = ["tui", "usage", "metrics", "claude", "openai", "copilot"]
 authors = [
-    { name = "GnomeCodexBar" }
+    { name = "usage" }
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -39,7 +39,7 @@ dev = [
 ]
 
 [project.scripts]
-usage-tui = "usage_tui.cli:main"
+usage = "usage_tui.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["usage_tui"]

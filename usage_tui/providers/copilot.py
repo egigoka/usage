@@ -207,7 +207,7 @@ class CopilotProvider(BaseProvider):
         """Get configuration instructions."""
         return """GitHub Copilot Provider Configuration:
 
-1. Run: usage-tui login --provider copilot
+1. Run: usage login --provider copilot
 2. Follow the browser authorization flow
 3. Token will be saved automatically
 
@@ -227,7 +227,7 @@ Note: Token needs 'read:user' scope."""
         if not self.is_configured():
             return self._make_error_result(
                 window=effective_window,
-                error="Not configured. Run 'usage-tui login --provider copilot'",
+                error="Not configured. Run 'usage login --provider copilot'",
             )
 
         try:
@@ -247,7 +247,7 @@ Note: Token needs 'read:user' scope."""
                 if response.status_code in (401, 403):
                     raise AuthenticationError(
                         "GitHub token invalid or lacks Copilot access. "
-                        "Run 'usage-tui login --provider copilot'"
+                        "Run 'usage login --provider copilot'"
                     )
 
                 if response.status_code == 404:
@@ -392,10 +392,10 @@ Note: Token needs 'read:user' scope."""
         device_code = device_response["device_code"]
 
         # Display instructions to user
-        print(f"\nTo authorize GitHub Copilot access:")
+        print("\nTo authorize GitHub Copilot access:")
         print(f"  1. Open: {verification_uri}")
         print(f"  2. Enter code: {user_code}")
-        print(f"\nWaiting for authorization...")
+        print("\nWaiting for authorization...")
 
         # Poll for token
         token = await flow.poll_for_token(device_code, interval)

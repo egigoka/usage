@@ -1,4 +1,4 @@
-"""CLI entry point for usage-tui."""
+"""CLI entry point for usage."""
 
 import asyncio
 import json
@@ -10,10 +10,10 @@ from click.core import ParameterSource
 from usage_tui.config import config
 from usage_tui.providers import (
     ClaudeOAuthProvider,
+    CodexProvider,
+    CopilotProvider,
     OpenAIUsageProvider,
     OpenRouterUsageProvider,
-    CopilotProvider,
-    CodexProvider,
 )
 from usage_tui.providers.base import BaseProvider, ProviderError, ProviderName, WindowPeriod
 
@@ -299,7 +299,7 @@ def setup() -> None:
     # GitHub token (optional)
     click.echo(click.style("GitHub Copilot", bold=True))
     click.echo("  Optional: provide a GitHub token, or use device flow login later.")
-    click.echo("  Recommended: run 'usage-tui login --provider copilot' instead.")
+    click.echo("  Recommended: run 'usage login --provider copilot' instead.")
     github_token = click.prompt("  GITHUB_TOKEN", default="", show_default=False).strip()
     if github_token:
         updates["GITHUB_TOKEN"] = github_token
@@ -340,10 +340,10 @@ def setup() -> None:
 
     click.echo()
     click.echo("Next steps:")
-    click.echo("  usage-tui show --json")
-    click.echo("  usage-tui show")
-    click.echo("  usage-tui doctor")
-    click.echo("  usage-tui tui")
+    click.echo("  usage show --json")
+    click.echo("  usage show")
+    click.echo("  usage doctor")
+    click.echo("  usage tui")
 
 
 @main.command()
@@ -382,7 +382,7 @@ def _login_claude() -> None:
         click.echo("To set up Claude CLI:")
         click.echo("  1. Install: npm install -g @anthropics/claude")
         click.echo("  2. Authenticate: claude setup-token")
-        click.echo("  3. Then run 'usage-tui login' again")
+        click.echo("  3. Then run 'usage login' again")
         sys.exit(1)
 
     info = auth.get_token_info()
@@ -408,7 +408,7 @@ def _login_claude() -> None:
             click.echo(f"  Scopes:     {', '.join(scopes)}")
         click.echo()
         click.echo("Token auto-loaded from ~/.claude/.credentials.json")
-        click.echo("You can now run: usage-tui show --provider claude")
+        click.echo("You can now run: usage show --provider claude")
         click.echo("=" * 60)
     else:
         click.echo(click.style("\n Could not extract token", fg="red"))
@@ -427,13 +427,13 @@ def _login_copilot() -> None:
     provider = CopilotProvider()
 
     try:
-        token = asyncio.run(provider.login())
+        asyncio.run(provider.login())
         click.echo()
         click.echo(click.style(" Login successful!", fg="green", bold=True))
         click.echo()
-        click.echo(f"  Token saved to: ~/.config/usage-tui/copilot.json")
+        click.echo("  Token saved to: ~/.config/usage-tui/copilot.json")
         click.echo()
-        click.echo("You can now run: usage-tui show --provider copilot")
+        click.echo("You can now run: usage show --provider copilot")
     except Exception as e:
         click.echo(click.style(f"\n Login failed: {e}", fg="red"))
         sys.exit(1)

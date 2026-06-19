@@ -41,11 +41,11 @@ do_refresh() {
         log "Warning: claude command not found"
     fi
     
-    if command -v usage-tui >/dev/null 2>&1; then
-        log "Running: usage-tui login --provider claude"
-        usage-tui login --provider claude >>"$LOG_FILE" 2>&1 || log "Warning: usage-tui login failed"
+    if command -v usage >/dev/null 2>&1; then
+        log "Running: usage login --provider claude"
+        usage login --provider claude >>"$LOG_FILE" 2>&1 || log "Warning: usage login failed"
     else
-        log "Warning: usage-tui command not found"
+        log "Warning: usage command not found"
     fi
     
     log "Token refresh cycle complete"

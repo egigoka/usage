@@ -37,7 +37,8 @@ class ResultCache:
 
     DEFAULT_TTL = 120  # 2 minutes
     PROVIDER_TTLS = {
-        ProviderName.CLAUDE: 60,  # 1 minute - quota changes quickly
+        ProviderName.CLAUDE: 60,  # 1 minute - avoid hammering Claude CLI/API
+        ProviderName.CODEX: 10,  # 10 seconds - quota changes quickly
         ProviderName.OPENAI: 180,  # 3 minutes - usage data is historical
         ProviderName.OPENROUTER: 180,  # 3 minutes - credits update periodically
         ProviderName.COPILOT: 300,  # 5 minutes - reports are slow to update
@@ -152,7 +153,7 @@ class ResultCache:
 
             with open(path, "w") as f:
                 f.write(sanitized.model_dump_json(indent=2))
-        except (OSError, IOError):
+        except OSError:
             # Silently fail on disk write errors
             pass
 
@@ -182,7 +183,7 @@ class ResultCache:
                 return result
 
             return None
-        except (OSError, IOError, json.JSONDecodeError, ValueError):
+        except (OSError, json.JSONDecodeError, ValueError):
             return None
 
     def _sanitize_raw(self, raw: dict[str, Any]) -> dict[str, Any]:

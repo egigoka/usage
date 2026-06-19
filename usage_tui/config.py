@@ -158,10 +158,10 @@ class Config:
         # Import providers lazily to avoid circular imports
         from usage_tui.providers import (
             ClaudeOAuthProvider,
+            CodexProvider,
+            CopilotProvider,
             OpenAIUsageProvider,
             OpenRouterUsageProvider,
-            CopilotProvider,
-            CodexProvider,
         )
 
         provider_map = {
