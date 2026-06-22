@@ -37,7 +37,7 @@ class ClaudeOAuthProvider(BaseProvider):
     name = ProviderName.CLAUDE
     USAGE_URL = "https://api.anthropic.com/api/oauth/usage"
     TOKEN_ENV_VAR = "CLAUDE_CODE_OAUTH_TOKEN"
-    CLI_CACHE_SECONDS = 60
+    CLI_CACHE_SECONDS = 120
 
     def __init__(self, token: str | None = None) -> None:
         """

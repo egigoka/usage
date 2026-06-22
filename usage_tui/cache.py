@@ -37,7 +37,7 @@ class ResultCache:
 
     DEFAULT_TTL = 120  # 2 minutes
     PROVIDER_TTLS = {
-        ProviderName.CLAUDE: 60,  # 1 minute - avoid hammering Claude CLI/API
+        ProviderName.CLAUDE: 120,  # 2 minutes - avoid Claude CLI/API rate limiter
         ProviderName.CODEX: 10,  # 10 seconds - quota changes quickly
         ProviderName.OPENAI: 180,  # 3 minutes - usage data is historical
         ProviderName.OPENROUTER: 180,  # 3 minutes - credits update periodically
