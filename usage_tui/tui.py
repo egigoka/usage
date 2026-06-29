@@ -34,6 +34,7 @@ class ProviderCard(Static):
 
     AGE_WIDTH = 15
     RESET_WIDTH = 20
+    RESET_AT_WIDTH = 12
     SUCCESS_WIDTH = 18
 
     DEFAULT_CSS = """
@@ -134,12 +135,23 @@ class ProviderCard(Static):
             segments.append(f"[{color}]{pct:5.1f}% used[/]")
 
         if m.reset_at:
-            reset_delta = m.reset_at - datetime.now(timezone.utc)
+            now = datetime.now(timezone.utc)
+            reset_delta = m.reset_at - now
             if reset_delta.total_seconds() > 0:
                 reset_text = f"resets in {self._format_duration(reset_delta.total_seconds())}"
                 segments.append(f"{reset_text:<{self.RESET_WIDTH}}")
 
-        if m.cost is not None:
+                local_reset = m.reset_at.astimezone()
+                now_local = datetime.now(local_reset.tzinfo)
+                reset_at_time = local_reset.strftime("%H:%M")
+                if local_reset.date() != now_local.date():
+                    date_prefix = local_reset.strftime("%d.%m")
+                    reset_at_text = f"{date_prefix} {reset_at_time}"
+                else:
+                    reset_at_text = reset_at_time
+                segments.append(f"{reset_at_text:<{self.RESET_AT_WIDTH}}")
+
+        if m.cost is not None and self.provider_name != ProviderName.CODEX:
             segments.append(f"${m.cost:.4f}")
 
         if m.requests is not None:

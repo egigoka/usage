@@ -167,14 +167,24 @@ def _print_result(name: ProviderName, result, label: str | None = None) -> None:
     if m.reset_at:
         from datetime import datetime, timezone
 
-        delta = m.reset_at - datetime.now(timezone.utc)
+        now = datetime.now(timezone.utc)
+        delta = m.reset_at - now
         if delta.total_seconds() > 0:
             hours = int(delta.total_seconds() // 3600)
             mins = int((delta.total_seconds() % 3600) // 60)
             click.echo(f"Resets:   {hours}h {mins}m")
 
+            local_reset = m.reset_at.astimezone()
+            now_local = datetime.now(local_reset.tzinfo)
+            reset_at_time = local_reset.strftime("%H:%M")
+            if local_reset.date() != now_local.date():
+                date_prefix = local_reset.strftime("%d.%m")
+                click.echo(f"Reset at: {date_prefix} {reset_at_time}")
+            else:
+                click.echo(f"Reset at: {reset_at_time}")
+
     # Cost
-    if m.cost is not None:
+    if m.cost is not None and name != ProviderName.CODEX:
         click.echo(f"Cost:     ${m.cost:.4f}")
 
     # Requests
