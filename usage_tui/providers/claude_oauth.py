@@ -50,6 +50,7 @@ class ClaudeOAuthProvider(BaseProvider):
         self._token = token or os.environ.get(self.TOKEN_ENV_VAR) or extract_claude_cli_token()
         self._cli_cache: dict[WindowPeriod, ProviderResult] | None = None
         self._cli_cache_at: datetime | None = None
+        self._cli_fetch_lock: asyncio.Lock = asyncio.Lock()
 
     def is_configured(self) -> bool:
         """Check if Claude CLI or OAuth token is available."""
@@ -191,6 +192,15 @@ Note: `claude /usage` is preferred for quota data."""
         if cached:
             return cached
 
+        async with self._cli_fetch_lock:
+            cached = self._get_cli_cached(window)
+            if cached:
+                return cached
+
+            return await self._run_cli_fetch(window)
+
+    async def _run_cli_fetch(self, window: WindowPeriod) -> ProviderResult:
+        """Run `claude /usage` subprocess (must be called under _cli_fetch_lock)."""
         env = os.environ.copy()
         # ClaudeBar found setup tokens can lack the scopes needed by /usage.
         env.pop(self.TOKEN_ENV_VAR, None)
