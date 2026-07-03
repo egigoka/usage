@@ -232,20 +232,24 @@ Note: `claude /usage` is preferred for quota data."""
         output = "\n".join(
             part.decode("utf-8", errors="replace") for part in (stdout, stderr) if part
         )
+        nonzero_error: str | None = None
         if process.returncode not in (0, None):
-            error = self._extract_cli_error(output) or (
+            nonzero_error = self._extract_cli_error(output) or (
                 f"Claude CLI exited with {process.returncode}"
             )
-            return self._make_error_result(window=window, error=error, raw={"source": "claude_cli"})
 
         try:
             results = self._parse_cli_output(output)
         except ValueError as e:
+            error = nonzero_error or str(e)
             return self._make_error_result(
                 window=window,
-                error=str(e),
+                error=error,
                 raw={"source": "claude_cli"},
             )
+
+        if nonzero_error and not results:
+            return self._make_error_result(window=window, error=nonzero_error, raw={"source": "claude_cli"})
 
         self._cli_cache = results
         self._cli_cache_at = datetime.now(timezone.utc)
