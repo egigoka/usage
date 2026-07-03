@@ -32,7 +32,7 @@ from usage_tui.providers.base import (
 class ProviderCard(Static):
     """A card displaying metrics for a single provider."""
 
-    AGE_WIDTH = 15
+    AGE_WIDTH = 18
     RESET_WIDTH = 20
     RESET_AT_WIDTH = 12
     SUCCESS_WIDTH = 18
