@@ -183,7 +183,9 @@ class ProviderCard(Static):
         if seconds < 60:
             return f"{int(seconds)}s"
         elif seconds < 3600:
-            return f"{int(seconds / 60)}m"
+            m = int(seconds // 60)
+            s = int(seconds % 60)
+            return f"{m}m {s}s"
         else:
             return f"{int(seconds / 3600)}h"
 
