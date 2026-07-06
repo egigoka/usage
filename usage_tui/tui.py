@@ -226,6 +226,7 @@ class UsageTUI(App):
 
     BINDINGS = [
         Binding("q", "quit", "Quit"),
+        Binding("ctrl+c", "quit", "Quit", show=False),
         Binding("r", "refresh", "Refresh"),
     ]
 
