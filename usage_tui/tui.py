@@ -33,7 +33,7 @@ class ProviderCard(Static):
     """A card displaying metrics for a single provider."""
 
     AGE_WIDTH = 18
-    RESET_WIDTH = 20
+    RESET_WIDTH = 21
     RESET_AT_WIDTH = 12
     SUCCESS_WIDTH = 18
 
@@ -249,6 +249,7 @@ class UsageTUI(App):
             ProviderName.OPENROUTER: OpenRouterUsageProvider(),
             ProviderName.COPILOT: CopilotProvider(),
             ProviderName.CODEX: CodexProvider(),
+            ProviderName.CODEX2: CodexProvider.second_subscription(),
         }
         self._refreshing = False
 
@@ -298,7 +299,7 @@ class UsageTUI(App):
             yield VerticalScroll(
                 *(
                     ProviderCard(name, self._windows_for(name), id=f"card-{name.value}")
-                    for name in self._ordered_providers()
+                    for name in self._visible_providers()
                 ),
                 id="cards-container",
             )
@@ -320,7 +321,7 @@ class UsageTUI(App):
 
     def _refresh_display(self) -> None:
         """Update relative timestamps and reset countdowns every second."""
-        for provider_name in self.providers:
+        for provider_name in self._visible_providers():
             card = self._get_card(provider_name)
             if card:
                 card.refresh_display()
@@ -338,7 +339,8 @@ class UsageTUI(App):
 
     async def _fetch_provider_data(self, *, use_cache: bool) -> None:
         """Fetch provider data, optionally using cached results."""
-        for provider_name, provider in self.providers.items():
+        for provider_name in self._visible_providers():
+            provider = self.providers[provider_name]
             if not provider.is_configured():
                 continue
 
@@ -369,6 +371,14 @@ class UsageTUI(App):
         configured = [n for n, p in self.providers.items() if p.is_configured()]
         unconfigured = [n for n, p in self.providers.items() if not p.is_configured()]
         return configured + unconfigured
+
+    def _visible_providers(self) -> list[ProviderName]:
+        """Providers shown in TUI; optional extra subscriptions stay hidden until used."""
+        return [
+            name
+            for name in self._ordered_providers()
+            if name != ProviderName.CODEX2 or self.providers[name].is_configured()
+        ]
 
     def _get_card(self, provider: ProviderName) -> ProviderCard | None:
         """Get the card widget for a provider."""

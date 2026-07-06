@@ -26,6 +26,7 @@ def get_providers() -> dict[ProviderName, BaseProvider]:
         ProviderName.OPENROUTER: OpenRouterUsageProvider(),
         ProviderName.COPILOT: CopilotProvider(),
         ProviderName.CODEX: CodexProvider(),
+        ProviderName.CODEX2: CodexProvider.second_subscription(),
     }
 
 
@@ -50,6 +51,11 @@ def parse_provider(provider: str) -> ProviderName | None:
     except ValueError:
         valid = ", ".join([p.value for p in ProviderName] + ["all"])
         raise click.BadParameter(f"Invalid provider. Choose from: {valid}")
+
+
+def _hide_when_unused(name: ProviderName) -> bool:
+    """Hide optional extra subscriptions from default views until configured."""
+    return name == ProviderName.CODEX2
 
 
 def _fetch_result(provider: BaseProvider, window: WindowPeriod):
@@ -79,7 +85,7 @@ def main(ctx: click.Context) -> None:
     "--provider",
     "-p",
     default="all",
-    help="Provider to query (claude, openai, openrouter, copilot, codex, all)",
+    help="Provider to query (claude, openai, openrouter, copilot, codex, codex2, all)",
 )
 @click.option(
     "--window",
@@ -113,6 +119,8 @@ def show(provider: str, window: str, output_json: bool) -> None:
     results = {}
     for name, prov in providers.items():
         if not prov.is_configured():
+            if provider_filter is None and _hide_when_unused(name):
+                continue
             if not output_json:
                 click.echo(f"\n{name.value}: Not configured")
                 click.echo(f"  Set {config.ENV_VARS.get(name)} environment variable")
@@ -122,7 +130,7 @@ def show(provider: str, window: str, output_json: bool) -> None:
         show_dual_windows = (
             not output_json
             and window_source == ParameterSource.DEFAULT
-            and name in {ProviderName.CLAUDE, ProviderName.CODEX}
+            and name in {ProviderName.CLAUDE, ProviderName.CODEX, ProviderName.CODEX2}
         )
 
         if show_dual_windows:
@@ -184,7 +192,7 @@ def _print_result(name: ProviderName, result, label: str | None = None) -> None:
                 click.echo(f"Reset at: {reset_at_time}")
 
     # Cost
-    if m.cost is not None and name != ProviderName.CODEX:
+    if m.cost is not None and name not in {ProviderName.CODEX, ProviderName.CODEX2}:
         click.echo(f"Cost:     ${m.cost:.4f}")
 
     # Requests
@@ -332,6 +340,9 @@ def setup() -> None:
     click.echo("  To set up:")
     click.echo("    npm install -g @openai/codex")
     click.echo("    codex")
+    click.echo("  Optional second subscription:")
+    click.echo("    CODEX_HOME=~/.codex-2 codex")
+    click.echo("    export CODEX_HOME_2=~/.codex-2")
     click.echo()
 
     # Write to env file

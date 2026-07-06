@@ -76,6 +76,7 @@ class Config:
         ProviderName.OPENROUTER: "OPENROUTER_API_KEY",
         ProviderName.COPILOT: "GITHUB_TOKEN",
         ProviderName.CODEX: "CODEX_ACCESS_TOKEN",
+        ProviderName.CODEX2: "CODEX_ACCESS_TOKEN_2",
     }
 
     # Provider descriptions
@@ -110,6 +111,12 @@ class Config:
             "official": False,
             "note": "Reads credentials from ~/.codex/auth.json",
         },
+        ProviderName.CODEX2: {
+            "name": "OpenAI Codex 2",
+            "description": "Second OpenAI Codex subscription via ChatGPT backend",
+            "official": False,
+            "note": "Reads credentials from ~/.codex-2/auth.json or CODEX_HOME_2/auth.json",
+        },
     }
 
     def get_token(self, provider: ProviderName) -> str | None:
@@ -134,10 +141,17 @@ class Config:
         if provider == ProviderName.CLAUDE:
             return extract_claude_cli_token()
 
-        if provider == ProviderName.CODEX:
+        if provider in {ProviderName.CODEX, ProviderName.CODEX2}:
             from usage_tui.providers.codex import CodexCredentialStore
 
-            store = CodexCredentialStore()
+            if provider == ProviderName.CODEX2:
+                store = CodexCredentialStore(
+                    access_token_env="CODEX_ACCESS_TOKEN_2",
+                    home_env="CODEX_HOME_2",
+                    default_home=Path.home() / ".codex-2",
+                )
+            else:
+                store = CodexCredentialStore()
             creds = store.load()
             return creds.access_token if creds else None
 
@@ -170,6 +184,7 @@ class Config:
             ProviderName.OPENROUTER: OpenRouterUsageProvider,
             ProviderName.COPILOT: CopilotProvider,
             ProviderName.CODEX: CodexProvider,
+            ProviderName.CODEX2: CodexProvider.second_subscription,
         }
 
         provider_class = provider_map.get(provider)

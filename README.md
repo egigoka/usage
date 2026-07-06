@@ -37,6 +37,7 @@
 | OpenAI | Official API | `OPENAI_ADMIN_KEY` |
 | OpenRouter | Official API | `OPENROUTER_API_KEY` |
 | OpenAI Codex | OAuth (unofficial) | `~/.codex/auth.json` or `CODEX_ACCESS_TOKEN` |
+| OpenAI Codex 2 | OAuth (unofficial) | `~/.codex-2/auth.json` or `CODEX_ACCESS_TOKEN_2` |
 | GitHub Copilot | Device flow (internal API) | `usage login --provider copilot` or `GITHUB_TOKEN` |
 
 ## Quick Start
@@ -51,6 +52,8 @@ pipx install .
 # Run setup wizard
 usage setup
 ```
+
+Fish setup notes for Claude Code plus two Codex subscriptions: [SETUP.md](SETUP.md).
 
 ### One-line setup for each provider
 
@@ -166,6 +169,11 @@ codex
 
 # Or set explicitly
 export CODEX_ACCESS_TOKEN=eyJ...
+
+# Optional second subscription
+env CODEX_HOME=$HOME/.codex-2 codex
+set -Ux CODEX_HOME_2 $HOME/.codex-2
+set -Ux CODEX_ACCESS_TOKEN_2 eyJ...
 
 Recommended: use Codex CLI credentials unless you need to override
 ```

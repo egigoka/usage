@@ -73,12 +73,23 @@ class CodexCredentialStore:
     Store and retrieve Codex credentials from ~/.codex/auth.json.
     """
 
+    def __init__(
+        self,
+        *,
+        access_token_env: str = "CODEX_ACCESS_TOKEN",
+        home_env: str = "CODEX_HOME",
+        default_home: Path | None = None,
+    ) -> None:
+        self.access_token_env = access_token_env
+        self.home_env = home_env
+        self.default_home = default_home or (Path.home() / ".codex")
+
     @property
     def codex_home(self) -> Path:
         """Get Codex home directory."""
-        if env_home := os.environ.get("CODEX_HOME"):
+        if env_home := os.environ.get(self.home_env):
             return Path(env_home)
-        return Path.home() / ".codex"
+        return self.default_home
 
     @property
     def auth_file(self) -> Path:
@@ -88,7 +99,7 @@ class CodexCredentialStore:
     def load(self) -> CodexCredentials | None:
         """Load credentials from auth.json."""
         # First check environment variable
-        if token := os.environ.get("CODEX_ACCESS_TOKEN"):
+        if token := os.environ.get(self.access_token_env):
             return CodexCredentials(access_token=token)
 
         # Then check auth.json
@@ -226,16 +237,35 @@ class CodexProvider(BaseProvider):
     BASE_URL = "https://chatgpt.com/backend-api"
     USAGE_PATH = "/wham/usage"
 
-    def __init__(self, credentials: CodexCredentials | None = None) -> None:
+    def __init__(
+        self,
+        credentials: CodexCredentials | None = None,
+        *,
+        name: ProviderName = ProviderName.CODEX,
+        store: CodexCredentialStore | None = None,
+    ) -> None:
         """
         Initialize the Codex provider.
 
         Args:
             credentials: OAuth credentials. If not provided, loads from storage.
         """
-        self._store = CodexCredentialStore()
+        self.name = name
+        self._store = store or CodexCredentialStore()
         self._refresher = CodexTokenRefresher()
         self._credentials = credentials or self._store.load()
+
+    @classmethod
+    def second_subscription(cls) -> "CodexProvider":
+        """Create provider for a second Codex subscription."""
+        return cls(
+            name=ProviderName.CODEX2,
+            store=CodexCredentialStore(
+                access_token_env="CODEX_ACCESS_TOKEN_2",
+                home_env="CODEX_HOME_2",
+                default_home=Path.home() / ".codex-2",
+            ),
+        )
 
     def is_configured(self) -> bool:
         """Check if Codex credentials are available."""
