@@ -53,11 +53,6 @@ def parse_provider(provider: str) -> ProviderName | None:
         raise click.BadParameter(f"Invalid provider. Choose from: {valid}")
 
 
-def _hide_when_unused(name: ProviderName) -> bool:
-    """Hide optional extra subscriptions from default views until configured."""
-    return name == ProviderName.CODEX2
-
-
 def _fetch_result(provider: BaseProvider, window: WindowPeriod):
     """Fetch provider metrics, converting errors into results."""
     try:
@@ -119,7 +114,7 @@ def show(provider: str, window: str, output_json: bool) -> None:
     results = {}
     for name, prov in providers.items():
         if not prov.is_configured():
-            if provider_filter is None and _hide_when_unused(name):
+            if provider_filter is None:
                 continue
             if not output_json:
                 click.echo(f"\n{name.value}: Not configured")

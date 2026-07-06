@@ -151,7 +151,7 @@ class ProviderCard(Static):
                     reset_at_text = reset_at_time
                 segments.append(f"{reset_at_text:<{self.RESET_AT_WIDTH}}")
 
-        if m.cost is not None and self.provider_name != ProviderName.CODEX:
+        if m.cost is not None and self.provider_name not in {ProviderName.CODEX, ProviderName.CODEX2}:
             segments.append(f"${m.cost:.4f}")
 
         if m.requests is not None:
@@ -373,12 +373,8 @@ class UsageTUI(App):
         return configured + unconfigured
 
     def _visible_providers(self) -> list[ProviderName]:
-        """Providers shown in TUI; optional extra subscriptions stay hidden until used."""
-        return [
-            name
-            for name in self._ordered_providers()
-            if name != ProviderName.CODEX2 or self.providers[name].is_configured()
-        ]
+        """Providers shown in TUI."""
+        return [name for name in self._ordered_providers() if self.providers[name].is_configured()]
 
     def _get_card(self, provider: ProviderName) -> ProviderCard | None:
         """Get the card widget for a provider."""
