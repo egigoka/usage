@@ -27,6 +27,7 @@ def get_providers() -> dict[ProviderName, BaseProvider]:
         ProviderName.COPILOT: CopilotProvider(),
         ProviderName.CODEX: CodexProvider(),
         ProviderName.CODEX2: CodexProvider.second_subscription(),
+        ProviderName.CODEX3: CodexProvider.third_subscription(),
     }
 
 
@@ -80,7 +81,7 @@ def main(ctx: click.Context) -> None:
     "--provider",
     "-p",
     default="all",
-    help="Provider to query (claude, openai, openrouter, copilot, codex, codex2, all)",
+    help="Provider to query (claude, openai, openrouter, copilot, codex, codex2, codex3, all)",
 )
 @click.option(
     "--window",
@@ -125,7 +126,13 @@ def show(provider: str, window: str, output_json: bool) -> None:
         show_dual_windows = (
             not output_json
             and window_source == ParameterSource.DEFAULT
-            and name in {ProviderName.CLAUDE, ProviderName.CODEX, ProviderName.CODEX2}
+            and name
+            in {
+                ProviderName.CLAUDE,
+                ProviderName.CODEX,
+                ProviderName.CODEX2,
+                ProviderName.CODEX3,
+            }
         )
 
         if show_dual_windows:
@@ -197,7 +204,11 @@ def _print_result(
                 click.echo(f"Reset at: {reset_at_time}")
 
     # Cost
-    if m.cost is not None and name not in {ProviderName.CODEX, ProviderName.CODEX2}:
+    if m.cost is not None and name not in {
+        ProviderName.CODEX,
+        ProviderName.CODEX2,
+        ProviderName.CODEX3,
+    }:
         click.echo(f"Cost:     ${m.cost:.4f}")
 
     # Requests
@@ -348,6 +359,9 @@ def setup() -> None:
     click.echo("  Optional second subscription:")
     click.echo("    CODEX_HOME=~/.codex-2 codex")
     click.echo("    export CODEX_HOME_2=~/.codex-2")
+    click.echo("  Optional third subscription:")
+    click.echo("    CODEX_HOME=~/.codex-3 codex")
+    click.echo("    export CODEX_HOME_3=~/.codex-3")
     click.echo()
 
     # Write to env file

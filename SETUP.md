@@ -50,11 +50,28 @@ Optional token override:
 set -Ux CODEX_ACCESS_TOKEN_2 eyJ...
 ```
 
+## OpenAI Codex Subscription 3
+
+Authenticate third account into separate Codex home, then tell `usage` where it lives.
+
+```fish
+env CODEX_HOME=$HOME/.codex-3 codex
+set -Ux CODEX_HOME_3 $HOME/.codex-3
+usage show --provider codex3
+```
+
+Optional token override:
+
+```fish
+set -Ux CODEX_ACCESS_TOKEN_3 eyJ...
+```
+
 ## Checks
 
 ```fish
 usage show
 usage show --provider codex2
+usage show --provider codex3
 usage doctor
 usage tui
 ```

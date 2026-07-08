@@ -25,6 +25,7 @@ class ProviderName(str, Enum):
     COPILOT = "copilot"
     CODEX = "codex"
     CODEX2 = "codex2"
+    CODEX3 = "codex3"
 
 
 class UsageMetrics(BaseModel):

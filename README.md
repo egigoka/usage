@@ -38,6 +38,7 @@
 | OpenRouter | Official API | `OPENROUTER_API_KEY` |
 | OpenAI Codex | OAuth (unofficial) | `~/.codex/auth.json` or `CODEX_ACCESS_TOKEN` |
 | OpenAI Codex 2 | OAuth (unofficial) | `~/.codex-2/auth.json` or `CODEX_ACCESS_TOKEN_2` |
+| OpenAI Codex 3 | OAuth (unofficial) | `~/.codex-3/auth.json` or `CODEX_ACCESS_TOKEN_3` |
 | GitHub Copilot | Device flow (internal API) | `usage login --provider copilot` or `GITHUB_TOKEN` |
 
 ## Quick Start
@@ -174,6 +175,11 @@ export CODEX_ACCESS_TOKEN=eyJ...
 env CODEX_HOME=$HOME/.codex-2 codex
 set -Ux CODEX_HOME_2 $HOME/.codex-2
 set -Ux CODEX_ACCESS_TOKEN_2 eyJ...
+
+# Optional third subscription
+env CODEX_HOME=$HOME/.codex-3 codex
+set -Ux CODEX_HOME_3 $HOME/.codex-3
+set -Ux CODEX_ACCESS_TOKEN_3 eyJ...
 
 Recommended: use Codex CLI credentials unless you need to override
 ```

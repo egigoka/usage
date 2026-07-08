@@ -278,12 +278,26 @@ class CodexProvider(BaseProvider):
     @classmethod
     def second_subscription(cls) -> "CodexProvider":
         """Create provider for a second Codex subscription."""
+        return cls.subscription(2)
+
+    @classmethod
+    def third_subscription(cls) -> "CodexProvider":
+        """Create provider for a third Codex subscription."""
+        return cls.subscription(3)
+
+    @classmethod
+    def subscription(cls, number: int) -> "CodexProvider":
+        """Create provider for an additional Codex subscription."""
+        provider_names = {
+            2: ProviderName.CODEX2,
+            3: ProviderName.CODEX3,
+        }
         return cls(
-            name=ProviderName.CODEX2,
+            name=provider_names[number],
             store=CodexCredentialStore(
-                access_token_env="CODEX_ACCESS_TOKEN_2",
-                home_env="CODEX_HOME_2",
-                default_home=Path.home() / ".codex-2",
+                access_token_env=f"CODEX_ACCESS_TOKEN_{number}",
+                home_env=f"CODEX_HOME_{number}",
+                default_home=Path.home() / f".codex-{number}",
             ),
         )
 
@@ -294,7 +308,10 @@ class CodexProvider(BaseProvider):
     @property
     def display_name(self) -> str:
         """Provider label including Codex account email when available."""
-        base_name = "OpenAI Codex 2" if self.name == ProviderName.CODEX2 else "OpenAI Codex"
+        base_name = {
+            ProviderName.CODEX2: "OpenAI Codex 2",
+            ProviderName.CODEX3: "OpenAI Codex 3",
+        }.get(self.name, "OpenAI Codex")
         if self._credentials and self._credentials.account_email:
             return f"{base_name} ({self._credentials.account_email})"
         return base_name

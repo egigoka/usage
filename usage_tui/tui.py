@@ -154,6 +154,7 @@ class ProviderCard(Static):
         if m.cost is not None and self.provider_name not in {
             ProviderName.CODEX,
             ProviderName.CODEX2,
+            ProviderName.CODEX3,
         }:
             segments.append(f"${m.cost:.4f}")
 
@@ -262,6 +263,7 @@ class UsageTUI(App):
             ProviderName.COPILOT: CopilotProvider(),
             ProviderName.CODEX: CodexProvider(),
             ProviderName.CODEX2: CodexProvider.second_subscription(),
+            ProviderName.CODEX3: CodexProvider.third_subscription(),
         }
         self._refreshing = False
 

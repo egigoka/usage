@@ -77,6 +77,7 @@ class Config:
         ProviderName.COPILOT: "GITHUB_TOKEN",
         ProviderName.CODEX: "CODEX_ACCESS_TOKEN",
         ProviderName.CODEX2: "CODEX_ACCESS_TOKEN_2",
+        ProviderName.CODEX3: "CODEX_ACCESS_TOKEN_3",
     }
 
     # Provider descriptions
@@ -117,6 +118,12 @@ class Config:
             "official": False,
             "note": "Reads credentials from ~/.codex-2/auth.json or CODEX_HOME_2/auth.json",
         },
+        ProviderName.CODEX3: {
+            "name": "OpenAI Codex 3",
+            "description": "Third OpenAI Codex subscription via ChatGPT backend",
+            "official": False,
+            "note": "Reads credentials from ~/.codex-3/auth.json or CODEX_HOME_3/auth.json",
+        },
     }
 
     def get_token(self, provider: ProviderName) -> str | None:
@@ -141,14 +148,15 @@ class Config:
         if provider == ProviderName.CLAUDE:
             return extract_claude_cli_token()
 
-        if provider in {ProviderName.CODEX, ProviderName.CODEX2}:
+        if provider in {ProviderName.CODEX, ProviderName.CODEX2, ProviderName.CODEX3}:
             from usage_tui.providers.codex import CodexCredentialStore
 
-            if provider == ProviderName.CODEX2:
+            if provider in {ProviderName.CODEX2, ProviderName.CODEX3}:
+                number = 2 if provider == ProviderName.CODEX2 else 3
                 store = CodexCredentialStore(
-                    access_token_env="CODEX_ACCESS_TOKEN_2",
-                    home_env="CODEX_HOME_2",
-                    default_home=Path.home() / ".codex-2",
+                    access_token_env=f"CODEX_ACCESS_TOKEN_{number}",
+                    home_env=f"CODEX_HOME_{number}",
+                    default_home=Path.home() / f".codex-{number}",
                 )
             else:
                 store = CodexCredentialStore()
@@ -185,6 +193,7 @@ class Config:
             ProviderName.COPILOT: CopilotProvider,
             ProviderName.CODEX: CodexProvider,
             ProviderName.CODEX2: CodexProvider.second_subscription,
+            ProviderName.CODEX3: CodexProvider.third_subscription,
         }
 
         provider_class = provider_map.get(provider)
