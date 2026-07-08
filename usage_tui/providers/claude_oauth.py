@@ -1,9 +1,11 @@
 """Claude provider for Claude Code subscription quota."""
 
 import asyncio
+import json
 import os
 import re
 import shutil
+import subprocess
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -38,6 +40,7 @@ class ClaudeOAuthProvider(BaseProvider):
     USAGE_URL = "https://api.anthropic.com/api/oauth/usage"
     TOKEN_ENV_VAR = "CLAUDE_CODE_OAUTH_TOKEN"
     CLI_CACHE_SECONDS = 180
+    CLI_AUTH_CACHE_SECONDS = 30
 
     def __init__(self, token: str | None = None) -> None:
         """
@@ -50,13 +53,47 @@ class ClaudeOAuthProvider(BaseProvider):
         self._token = token or os.environ.get(self.TOKEN_ENV_VAR) or extract_claude_cli_token()
         self._cli_cache: dict[WindowPeriod, ProviderResult] | None = None
         self._cli_cache_at: datetime | None = None
+        self._cli_auth_cache: bool | None = None
+        self._cli_auth_cache_at: datetime | None = None
         self._cli_fetch_lock: asyncio.Lock = asyncio.Lock()
 
     def is_configured(self) -> bool:
         """Check if Claude CLI or OAuth token is available."""
-        return shutil.which("claude") is not None or (
-            self._token is not None and self._token.startswith("sk-ant-")
-        )
+        if self._token is not None and self._token.startswith("sk-ant-"):
+            return True
+        return shutil.which("claude") is not None and self._is_cli_authenticated()
+
+    def _is_cli_authenticated(self) -> bool:
+        """Return whether Claude CLI reports an active login."""
+        if self._cli_auth_cache_at is not None and self._cli_auth_cache is not None:
+            age = datetime.now(timezone.utc) - self._cli_auth_cache_at
+            if age.total_seconds() < self.CLI_AUTH_CACHE_SECONDS:
+                return self._cli_auth_cache
+
+        try:
+            process = subprocess.run(
+                ["claude", "auth", "status"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            authenticated = False
+        else:
+            authenticated = self._parse_cli_auth_status(process.stdout)
+
+        self._cli_auth_cache = authenticated
+        self._cli_auth_cache_at = datetime.now(timezone.utc)
+        return authenticated
+
+    def _parse_cli_auth_status(self, output: str) -> bool:
+        """Parse `claude auth status` JSON output."""
+        try:
+            data = json.loads(output)
+        except json.JSONDecodeError:
+            return True
+        return data.get("loggedIn") is True
 
     def get_config_help(self) -> str:
         """Get configuration instructions."""
@@ -104,7 +141,8 @@ Note: `claude /usage` is preferred for quota data."""
     ) -> ProviderResult:
         """Combine Claude CLI and API failures into one clear error."""
         api_limited = api_result.raw.get("status_code") == 429
-        if api_limited and cli_result.error == "Could not parse Claude CLI /usage output":
+        quota_error = "Claude CLI did not return quota data. Run `claude` and try `/usage`."
+        if api_limited and cli_result.error == quota_error:
             return self._make_error_result(
                 window=window,
                 error="both claude /usage and api is rate limited",
@@ -249,7 +287,11 @@ Note: `claude /usage` is preferred for quota data."""
             )
 
         if nonzero_error and not results:
-            return self._make_error_result(window=window, error=nonzero_error, raw={"source": "claude_cli"})
+            return self._make_error_result(
+                window=window,
+                error=nonzero_error,
+                raw={"source": "claude_cli"},
+            )
 
         self._cli_cache = results
         self._cli_cache_at = datetime.now(timezone.utc)
@@ -297,7 +339,7 @@ Note: `claude /usage` is preferred for quota data."""
             parsed[WindowPeriod.DAY_7] = weekly
 
         if not parsed:
-            raise ValueError("Could not parse Claude CLI /usage output")
+            raise ValueError("Claude CLI did not return quota data. Run `claude` and try `/usage`.")
         return parsed
 
     def _parse_cli_window(
@@ -454,7 +496,22 @@ Note: `claude /usage` is preferred for quota data."""
     def _extract_cli_error(self, output: str) -> str | None:
         """Return a concise CLI error if output indicates failure."""
         lower = output.lower()
-        if "not logged in" in lower or "please log in" in lower or "authentication_error" in lower:
+        auth_markers = (
+            "not logged in",
+            "please log in",
+            "log in to claude",
+            "login required",
+            "authentication required",
+            "authentication_error",
+            "not authenticated",
+            "invalid api key",
+            "no api key",
+            "api key required",
+            "run /login",
+            "use /login",
+            "claude.ai/login",
+        )
+        if any(marker in lower for marker in auth_markers):
             return "Claude CLI is not authenticated. Run `claude` to log in."
         if "do you trust" in lower or "is this a project you created or one you trust" in lower:
             return "Claude CLI needs this workspace trusted before /usage can run."
@@ -462,6 +519,8 @@ Note: `claude /usage` is preferred for quota data."""
             return "Claude CLI update required."
         if "/usage is only available for subscription plans" in lower:
             return "Claude /usage is only available for subscription plans."
+        if "total cost:" in lower and "total duration" in lower and "usage:" in lower:
+            return "Claude CLI did not return quota data. Run `claude` and try `/usage`."
         is_rate_limited = "rate limited" in lower or "rate limit exceeded" in lower
         if is_rate_limited and "rate limits are" not in lower:
             return "Claude CLI rate limited."

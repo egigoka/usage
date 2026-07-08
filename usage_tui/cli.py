@@ -132,22 +132,32 @@ def show(provider: str, window: str, output_json: bool) -> None:
             result_5h = _fetch_result(prov, WindowPeriod.HOUR_5)
             result_7d = _fetch_result(prov, WindowPeriod.DAY_7)
             results[name.value] = result_7d
-            _print_result(name, result_5h, label="5h")
-            _print_result(name, result_7d, label="7d")
+            _print_result(name, result_5h, label="5h", title=_provider_title(prov, name))
+            _print_result(name, result_7d, label="7d", title=_provider_title(prov, name))
         else:
             result = _fetch_result(prov, window_period)
             results[name.value] = result
             if not output_json:
-                _print_result(name, result)
+                _print_result(name, result, title=_provider_title(prov, name))
 
     if output_json:
         output = {k: v.model_dump(mode="json") for k, v in results.items()}
         click.echo(json.dumps(output, indent=2))
 
 
-def _print_result(name: ProviderName, result, label: str | None = None) -> None:
+def _provider_title(provider: BaseProvider, name: ProviderName) -> str:
+    """Return display title for provider output."""
+    return getattr(provider, "display_name", name.value.upper())
+
+
+def _print_result(
+    name: ProviderName,
+    result,
+    label: str | None = None,
+    title: str | None = None,
+) -> None:
     """Print a formatted result."""
-    title = name.value.upper()
+    title = title or name.value.upper()
     if label:
         title = f"{title} ({label})"
     click.echo(f"\n{click.style(title, bold=True)}")

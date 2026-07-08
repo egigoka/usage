@@ -83,7 +83,7 @@ class ProviderCard(Static):
 
     def _render_card(self) -> None:
         """Render the provider name with one compact line per window."""
-        name = self.provider_info["name"]
+        name = self._display_name()
 
         if not self.provider_info["configured"]:
             self.set_class(True, "unconfigured")
@@ -151,7 +151,10 @@ class ProviderCard(Static):
                     reset_at_text = reset_at_time
                 segments.append(f"{reset_at_text:<{self.RESET_AT_WIDTH}}")
 
-        if m.cost is not None and self.provider_name not in {ProviderName.CODEX, ProviderName.CODEX2}:
+        if m.cost is not None and self.provider_name not in {
+            ProviderName.CODEX,
+            ProviderName.CODEX2,
+        }:
             segments.append(f"${m.cost:.4f}")
 
         if m.requests is not None:
@@ -161,6 +164,14 @@ class ProviderCard(Static):
             segments.append(f"{m.total_tokens:,} tokens")
 
         return f"{label} | " + " | ".join(segments)
+
+    def _display_name(self) -> str:
+        """Return provider label, including account identity when available."""
+        try:
+            provider = self.app.providers[self.provider_name]
+        except Exception:
+            return self.provider_info["name"]
+        return getattr(provider, "display_name", self.provider_info["name"])
 
     def _theme_color(self, name: str, fallback: str) -> str:
         """Return an active theme color usable in Rich markup."""
@@ -322,9 +333,12 @@ class UsageTUI(App):
 
     def _refresh_display(self) -> None:
         """Update relative timestamps and reset countdowns every second."""
-        for provider_name in self._visible_providers():
+        for provider_name, provider in self.providers.items():
             card = self._get_card(provider_name)
-            if card:
+            if not card:
+                continue
+            card.display = provider.is_configured()
+            if card.display:
                 card.refresh_display()
 
     async def _refresh_data(self, *, use_cache: bool) -> None:

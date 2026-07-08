@@ -1,5 +1,6 @@
 """OpenAI Codex provider for usage metrics."""
 
+import base64
 import json
 import os
 from datetime import datetime, timezone
@@ -31,13 +32,28 @@ class CodexCredentials:
         refresh_token: str = "",
         id_token: str = "",
         account_id: str | None = None,
+        account_email: str | None = None,
         last_refresh: datetime | None = None,
     ) -> None:
         self.access_token = access_token
         self.refresh_token = refresh_token
         self.id_token = id_token
         self.account_id = account_id
+        self.account_email = account_email or self._email_from_id_token(id_token)
         self.last_refresh = last_refresh or datetime.now(timezone.utc)
+
+    @staticmethod
+    def _email_from_id_token(id_token: str) -> str | None:
+        """Extract email claim from a JWT without validating signature."""
+        try:
+            payload = id_token.split(".")[1]
+            payload += "=" * ((4 - len(payload) % 4) % 4)
+            claims = json.loads(base64.urlsafe_b64decode(payload))
+        except (IndexError, ValueError, json.JSONDecodeError):
+            return None
+
+        email = claims.get("email")
+        return email if isinstance(email, str) and email else None
 
     def needs_refresh(self) -> bool:
         """Check if token needs refresh (older than 8 days)."""
@@ -64,6 +80,7 @@ class CodexCredentials:
             refresh_token=data.get("refresh_token", ""),
             id_token=data.get("id_token", ""),
             account_id=data.get("account_id"),
+            account_email=data.get("account_email"),
             last_refresh=last_refresh,
         )
 
@@ -124,6 +141,7 @@ class CodexCredentialStore:
                     refresh_token=tokens.get("refresh_token", ""),
                     id_token=tokens.get("id_token", ""),
                     account_id=tokens.get("account_id"),
+                    account_email=tokens.get("account_email"),
                     last_refresh=last_refresh,
                 )
 
@@ -144,6 +162,7 @@ class CodexCredentialStore:
                 "refresh_token": credentials.refresh_token,
                 "id_token": credentials.id_token,
                 "account_id": credentials.account_id,
+                "account_email": credentials.account_email,
             },
             "last_refresh": credentials.last_refresh.isoformat()
             if credentials.last_refresh
@@ -215,6 +234,7 @@ class CodexTokenRefresher:
                 refresh_token=data.get("refresh_token", credentials.refresh_token),
                 id_token=data.get("id_token", credentials.id_token),
                 account_id=credentials.account_id,
+                account_email=credentials.account_email,
                 last_refresh=datetime.now(timezone.utc),
             )
 
@@ -270,6 +290,14 @@ class CodexProvider(BaseProvider):
     def is_configured(self) -> bool:
         """Check if Codex credentials are available."""
         return self._credentials is not None and len(self._credentials.access_token) > 0
+
+    @property
+    def display_name(self) -> str:
+        """Provider label including Codex account email when available."""
+        base_name = "OpenAI Codex 2" if self.name == ProviderName.CODEX2 else "OpenAI Codex"
+        if self._credentials and self._credentials.account_email:
+            return f"{base_name} ({self._credentials.account_email})"
+        return base_name
 
     def get_config_help(self) -> str:
         """Get configuration instructions."""
