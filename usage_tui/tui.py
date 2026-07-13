@@ -108,7 +108,16 @@ class ProviderCard(Static):
             and not first_result.is_error
             and not second_result.is_error
             and first_result.metrics.limit is not None
-            and first_result.metrics == second_result.metrics
+            and (
+                first_result.metrics.remaining,
+                first_result.metrics.limit,
+                first_result.metrics.reset_at,
+            )
+            == (
+                second_result.metrics.remaining,
+                second_result.metrics.limit,
+                second_result.metrics.reset_at,
+            )
         )
 
     def _window_line(
