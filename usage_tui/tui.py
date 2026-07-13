@@ -7,10 +7,7 @@ from rich.markup import escape
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Container, VerticalScroll
-from textual.widgets import (
-    Footer,
-    Static,
-)
+from textual.widgets import Static
 
 from usage_tui.cache import ResultCache
 from usage_tui.config import ENV_FILE_PATH, config
@@ -92,14 +89,33 @@ class ProviderCard(Static):
 
         self.set_class(False, "unconfigured")
 
+        shared_limit = self._limits_match(WindowPeriod.HOUR_5, WindowPeriod.DAY_7)
         lines = [f"[b]{name}[/]"]
         for window in self.windows:
-            lines.append("  " + self._window_line(window, self._results.get(window)))
+            if shared_limit and window == WindowPeriod.DAY_7:
+                continue
+            label = "5h/7d" if shared_limit and window == WindowPeriod.HOUR_5 else None
+            lines.append("  " + self._window_line(window, self._results.get(window), label))
         self.update("\n".join(lines))
 
-    def _window_line(self, window: WindowPeriod, result: ProviderResult | None) -> str:
+    def _limits_match(self, first: WindowPeriod, second: WindowPeriod) -> bool:
+        """Return whether two successful windows report one shared limit."""
+        first_result = self._results.get(first)
+        second_result = self._results.get(second)
+        return bool(
+            first_result
+            and second_result
+            and not first_result.is_error
+            and not second_result.is_error
+            and first_result.metrics.limit is not None
+            and first_result.metrics == second_result.metrics
+        )
+
+    def _window_line(
+        self, window: WindowPeriod, result: ProviderResult | None, label: str | None = None
+    ) -> str:
         """Build the compact metrics line for a single window."""
-        label = window.value
+        label = label or window.value
 
         if result is None:
             return f"{label} | loading…"
@@ -317,7 +333,6 @@ class UsageTUI(App):
                 ),
                 id="cards-container",
             )
-        yield Footer()
 
     async def on_mount(self) -> None:
         """Initialize and fetch data on mount."""
