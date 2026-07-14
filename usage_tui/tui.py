@@ -102,22 +102,31 @@ class ProviderCard(Static):
         """Return whether two successful windows report one shared limit."""
         first_result = self._results.get(first)
         second_result = self._results.get(second)
+        first_metrics = first_result.metrics if first_result else None
+        second_metrics = second_result.metrics if second_result else None
+        reset_times_match = bool(
+            first_metrics
+            and second_metrics
+            and (
+                first_metrics.reset_at == second_metrics.reset_at
+                or (
+                    first_metrics.reset_at is not None
+                    and second_metrics.reset_at is not None
+                    and abs((first_metrics.reset_at - second_metrics.reset_at).total_seconds()) < 60
+                )
+            )
+        )
         return bool(
             first_result
             and second_result
             and not first_result.is_error
             and not second_result.is_error
-            and first_result.metrics.limit is not None
-            and (
-                first_result.metrics.remaining,
-                first_result.metrics.limit,
-                first_result.metrics.reset_at,
-            )
-            == (
-                second_result.metrics.remaining,
-                second_result.metrics.limit,
-                second_result.metrics.reset_at,
-            )
+            and first_metrics
+            and second_metrics
+            and first_metrics.limit is not None
+            and first_metrics.remaining == second_metrics.remaining
+            and first_metrics.limit == second_metrics.limit
+            and reset_times_match
         )
 
     def _window_line(
