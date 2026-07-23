@@ -2,6 +2,14 @@
 
 ## usage-tui Python Package Versions
 
+### v0.1.2 (2026-07-23)
+**Added**
+- Display available Codex usage resets and expiration dates for all three subscriptions
+- Refresh Codex reset details at TUI launch, every tenth usage refresh, and each formatted CLI run
+
+**Fixed**
+- Apply the 10-second Codex cache duration to second and third subscriptions
+
 ### v0.1.1 (2026-02-15)
 **Fixed**
 - Copilot provider now correctly extracts and displays actual credit numbers from API response
@@ -20,4 +28,4 @@
 
 ## Version Numbering
 
-- **usage-tui**: Uses semantic versioning (0.1.1)
+- **usage-tui**: Uses semantic versioning (0.1.2)

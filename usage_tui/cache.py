@@ -39,6 +39,8 @@ class ResultCache:
     PROVIDER_TTLS = {
         ProviderName.CLAUDE: 180,  # 3 minutes
         ProviderName.CODEX: 10,  # 10 seconds - quota changes quickly
+        ProviderName.CODEX2: 10,
+        ProviderName.CODEX3: 10,
         ProviderName.OPENAI: 180,  # 3 minutes - usage data is historical
         ProviderName.OPENROUTER: 180,  # 3 minutes - credits update periodically
         ProviderName.COPILOT: 300,  # 5 minutes - reports are slow to update

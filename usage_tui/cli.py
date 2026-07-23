@@ -64,6 +64,16 @@ def _fetch_result(provider: BaseProvider, window: WindowPeriod):
         return provider._make_error_result(window=window, error=f"Unexpected error: {exc}")
 
 
+def _refresh_reset_credits(provider: BaseProvider) -> None:
+    """Best-effort refresh of Codex reset-credit label details."""
+    if not isinstance(provider, CodexProvider):
+        return
+    try:
+        asyncio.run(provider.refresh_reset_credits())
+    except Exception:
+        pass
+
+
 @click.group(invoke_without_command=True)
 @click.version_option()
 @click.pass_context
@@ -139,12 +149,14 @@ def show(provider: str, window: str, output_json: bool) -> None:
             result_5h = _fetch_result(prov, WindowPeriod.HOUR_5)
             result_7d = _fetch_result(prov, WindowPeriod.DAY_7)
             results[name.value] = result_7d
+            _refresh_reset_credits(prov)
             _print_result(name, result_5h, label="5h", title=_provider_title(prov, name))
             _print_result(name, result_7d, label="7d", title=_provider_title(prov, name))
         else:
             result = _fetch_result(prov, window_period)
             results[name.value] = result
             if not output_json:
+                _refresh_reset_credits(prov)
                 _print_result(name, result, title=_provider_title(prov, name))
 
     if output_json:

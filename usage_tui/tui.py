@@ -278,6 +278,7 @@ class UsageTUI(App):
 
     DISPLAY_REFRESH_SECONDS = 1
     DATA_REFRESH_SECONDS = 10
+    RESET_CREDIT_REFRESH_INTERVAL = 10
 
     # Windows shown per provider. Copilot only reports a fixed 30-day window.
     DEFAULT_WINDOWS = (WindowPeriod.HOUR_5, WindowPeriod.DAY_7)
@@ -300,6 +301,7 @@ class UsageTUI(App):
             ProviderName.CODEX3: CodexProvider.third_subscription(),
         }
         self._refreshing = False
+        self._usage_refresh_count = 0
 
         saved_theme = self._load_saved_theme()
         self._theme_settings_ready = True
@@ -384,8 +386,28 @@ class UsageTUI(App):
         self._refreshing = True
         try:
             await self._fetch_provider_data(use_cache=use_cache)
+            if self._usage_refresh_count % self.RESET_CREDIT_REFRESH_INTERVAL == 0:
+                await self._refresh_codex_reset_credits()
+            self._usage_refresh_count += 1
         finally:
             self._refreshing = False
+
+    async def _refresh_codex_reset_credits(self) -> None:
+        """Refresh reset-credit labels without blocking normal usage updates on failure."""
+        for provider_name in (
+            ProviderName.CODEX,
+            ProviderName.CODEX2,
+            ProviderName.CODEX3,
+        ):
+            provider = self.providers[provider_name]
+            if not isinstance(provider, CodexProvider) or not provider.is_configured():
+                continue
+            try:
+                await provider.refresh_reset_credits()
+            except Exception:
+                continue
+            if card := self._get_card(provider_name):
+                card.refresh_display()
 
     async def _fetch_provider_data(self, *, use_cache: bool) -> None:
         """Fetch provider data, optionally using cached results."""

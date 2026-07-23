@@ -256,6 +256,7 @@ class CodexProvider(BaseProvider):
     # API endpoints
     BASE_URL = "https://chatgpt.com/backend-api"
     USAGE_PATH = "/wham/usage"
+    RESET_CREDITS_PATH = "/wham/rate-limit-reset-credits"
 
     def __init__(
         self,
@@ -274,6 +275,8 @@ class CodexProvider(BaseProvider):
         self._store = store or CodexCredentialStore()
         self._refresher = CodexTokenRefresher()
         self._credentials = credentials or self._store.load()
+        self._reset_credit_count: int | None = None
+        self._reset_credit_expirations: tuple[datetime, ...] = ()
 
     @classmethod
     def second_subscription(cls) -> "CodexProvider":
@@ -313,8 +316,68 @@ class CodexProvider(BaseProvider):
             ProviderName.CODEX3: "OpenAI Codex 3",
         }.get(self.name, "OpenAI Codex")
         if self._credentials and self._credentials.account_email:
-            return f"{base_name} ({self._credentials.account_email})"
+            base_name = f"{base_name} ({self._credentials.account_email})"
+
+        if self._reset_credit_count:
+            suffix = f" Usage resets available x{self._reset_credit_count}"
+            if self._reset_credit_expirations:
+                dates = ", ".join(
+                    expiration.astimezone().strftime("%b %d").replace(" 0", " ")
+                    for expiration in self._reset_credit_expirations
+                )
+                suffix += f" - {dates}"
+            base_name += suffix
+
         return base_name
+
+    async def refresh_reset_credits(self) -> None:
+        """Refresh available usage-reset count and expiration dates."""
+        if not self.is_configured():
+            return
+
+        assert self._credentials is not None
+        headers = {
+            "Authorization": f"Bearer {self._credentials.access_token}",
+            "Accept": "application/json",
+            "User-Agent": "usage-tui",
+        }
+        if self._credentials.account_id:
+            headers["ChatGPT-Account-Id"] = self._credentials.account_id
+
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(
+                f"{self.BASE_URL}{self.RESET_CREDITS_PATH}",
+                headers=headers,
+            )
+
+        if response.status_code in (401, 403):
+            raise AuthenticationError("Codex token expired. Run 'codex' CLI to re-authenticate.")
+        if response.status_code != 200:
+            raise ProviderError(f"Reset credits API error: HTTP {response.status_code}")
+
+        self._parse_reset_credits(response.json())
+
+    def _parse_reset_credits(self, data: dict[str, object]) -> None:
+        """Store available usage resets from the reset-credit API response."""
+        expirations = []
+        credits = data.get("credits")
+        for credit in credits if isinstance(credits, list) else []:
+            if not isinstance(credit, dict) or credit.get("status") != "available":
+                continue
+            expires_at = credit.get("expires_at")
+            if not isinstance(expires_at, str):
+                continue
+            try:
+                expirations.append(datetime.fromisoformat(expires_at.replace("Z", "+00:00")))
+            except ValueError:
+                continue
+
+        available_count = data.get("available_count")
+        if not isinstance(available_count, int) or isinstance(available_count, bool):
+            available_count = len(expirations)
+
+        self._reset_credit_count = max(0, available_count)
+        self._reset_credit_expirations = tuple(sorted(expirations))
 
     def get_config_help(self) -> str:
         """Get configuration instructions."""
